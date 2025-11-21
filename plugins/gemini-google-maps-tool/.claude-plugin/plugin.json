@@ -1,0 +1,8 @@
+{
+    "name": "gemini-google-maps-tool",
+    "description": "CLI tool for querying Gemini with Google Maps grounding",
+    "version": "0.1.0",
+    "author": {
+        "name": "Dennis Vriend"
+    }
+}

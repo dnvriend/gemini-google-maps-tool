@@ -1,0 +1,15 @@
+{
+    "name": "gemini-google-maps-tool",
+    "owner": {
+        "name": "Dennis Vriend",
+        "email": "dvriend@ilionx.com",
+        "url": "https://github.com/dnvriend/gemini-google-maps-tool"
+    },
+    "plugins": [
+        {
+            "name": "gemini-google-maps-tool",
+            "source": "./plugins/gemini-google-maps-tool",
+            "description": "Query Gemini with Google Maps grounding"
+        }
+    ]
+}

@@ -13,13 +13,15 @@ import click
 from gemini_google_maps_tool.core import get_client, query_maps
 from gemini_google_maps_tool.core.client import ClientError
 from gemini_google_maps_tool.core.maps import QueryError
+from gemini_google_maps_tool.logging_config import get_logger, setup_logging
 from gemini_google_maps_tool.utils import (
     log_error,
-    log_verbose,
     output_json,
     output_markdown,
     read_stdin,
 )
+
+logger = get_logger(__name__)
 
 
 @click.command()
@@ -33,8 +35,8 @@ from gemini_google_maps_tool.utils import (
 @click.option(
     "-v",
     "--verbose",
-    is_flag=True,
-    help="Enable verbose output (includes full grounding metadata)",
+    count=True,
+    help="Enable verbose output (use -v for INFO, -vv for DEBUG, -vvv for TRACE)",
 )
 @click.option(
     "--model",
@@ -57,7 +59,7 @@ from gemini_google_maps_tool.utils import (
 def query(
     query_text: str | None,
     lat_lon: str | None,
-    verbose: bool,
+    verbose: int,
     model: str,
     stdin: bool,
     text: bool,
@@ -66,9 +68,16 @@ def query(
 
     QUERY_TEXT: The query to send to Gemini (required unless --stdin is used)
 
-    This command connects to Gemini with Google Maps integration, enabling queries
-    about places, businesses, directions, and location-specific information with
-    accurate, up-to-date data from Google Maps.
+    Connects to Gemini with Google Maps integration (250+ million places) for
+    queries about places, businesses, directions, and location-specific information
+    with accurate, up-to-date data.
+
+    Features:
+      • Multi-level verbosity: -v (INFO), -vv (DEBUG), -vvv (TRACE)
+      • Location context: --lat-lon for personalized results
+      • Model choice: flash (powerful) or flash-lite (fast, default)
+      • Output formats: JSON (default) or Markdown (--text)
+      • Stdin support: pipe queries from other tools
 
     Examples:
 
@@ -82,24 +91,24 @@ def query(
         --lat-lon "37.78193,-122.40476"
 
     \b
-    # Query with verbose output (includes grounding sources)
-    gemini-google-maps-tool query "Museums in San Francisco" \\
-        --lat-lon "37.7749,-122.4194" \\
-        --verbose
+    # Multi-level verbosity
+    gemini-google-maps-tool query "Museums" -v     # INFO
+    gemini-google-maps-tool query "Hotels" -vv     # DEBUG
+    gemini-google-maps-tool query "Parks" -vvv     # TRACE
 
     \b
-    # Using flash model instead of flash-lite
-    gemini-google-maps-tool query "Plan a day in NYC" \\
+    # Using flash model (more powerful)
+    gemini-google-maps-tool query "Plan a 3-day trip to NYC" \\
         --model flash
 
     \b
-    # Reading query from stdin (useful for piping)
-    echo "Best sushi restaurants near Times Square" | \\
+    # Reading from stdin (for pipelines)
+    echo "Best sushi near Times Square" | \\
         gemini-google-maps-tool query --stdin \\
         --lat-lon "40.758,-73.9855"
 
     \b
-    # Output as markdown text with sources
+    # Markdown output with sources
     gemini-google-maps-tool query "Best museums in Paris" \\
         --text
 
@@ -108,7 +117,7 @@ def query(
         JSON (default):
         {
           "response_text": "...",
-          "grounding_metadata": {  // Only with --verbose
+          "grounding_metadata": {  // Only with -v or higher
             "grounding_chunks": [...],
             "grounding_supports": [...],
             "google_maps_widget_context_token": "..."
@@ -127,8 +136,12 @@ def query(
 
     Environment Variables:
         GEMINI_API_KEY: Required API key for Gemini authentication
-                       Get your key from: https://aistudio.google.com/app/apikey
+                       Get your key: https://aistudio.google.com/app/apikey
     """
+    # Setup logging based on verbosity count
+    setup_logging(verbose)
+    logger.info("Starting Maps query command")
+
     try:
         # Determine query source
         if stdin:
@@ -155,24 +168,21 @@ def query(
                 from gemini_google_maps_tool.core.maps import parse_lat_lon
 
                 lat_lon_tuple = parse_lat_lon(lat_lon)
-                if verbose:
-                    log_verbose(f"Using location: {lat_lon_tuple[0]}, {lat_lon_tuple[1]}")
+                logger.info(f"Using location: {lat_lon_tuple[0]}, {lat_lon_tuple[1]}")
             except ValueError as e:
                 log_error(str(e))
                 sys.exit(1)
 
         # Map model choice to full model name
         model_name = "gemini-2.5-flash" if model == "flash" else "gemini-2.5-flash-lite"
-        if verbose:
-            log_verbose(f"Using model: {model_name}")
+        logger.info(f"Using model: {model_name}")
 
         # Get client and execute query
         client = get_client()
-        if verbose:
-            log_verbose("Querying with Google Maps grounding...")
+        logger.info("Querying with Google Maps grounding...")
 
-        # Include grounding if verbose OR text mode (for sources)
-        include_grounding = verbose or text
+        # Include grounding if verbose >= 1 OR text mode (for sources)
+        include_grounding = verbose >= 1 or text
 
         result = query_maps(
             client=client,
@@ -182,8 +192,7 @@ def query(
             include_grounding=include_grounding,
         )
 
-        if verbose:
-            log_verbose("Query completed successfully")
+        logger.info("Query completed successfully")
 
         # Output based on format preference
         if text:
@@ -209,7 +218,7 @@ def query(
             # JSON output
             output: dict[str, object] = {"response_text": result.response_text}
 
-            if verbose and result.grounding_metadata:
+            if verbose >= 1 and result.grounding_metadata:
                 metadata = result.grounding_metadata
                 grounding_dict_json: dict[str, object] = {}
 

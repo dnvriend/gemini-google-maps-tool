@@ -6,10 +6,13 @@ Note: This code was generated with assistance from AI coding tools
 and has been reviewed and tested by a human.
 """
 
+import logging
 from dataclasses import dataclass
 
 from google import genai
 from google.genai import types
+
+logger = logging.getLogger(__name__)
 
 
 class QueryError(Exception):
@@ -227,7 +230,13 @@ def query_maps(
         ...         print(f"Source: {chunk.title} - {chunk.uri}")
     """
     try:
+        logger.debug(f"Starting Maps query with model: {model}")
+        logger.debug(
+            f"Query text: {query[:100]}..." if len(query) > 100 else f"Query text: {query}"
+        )
+
         # Build Google Maps tool
+        logger.debug("Building Google Maps tool configuration")
         google_maps_tool = types.Tool(google_maps=types.GoogleMaps())
 
         # Build config
@@ -236,20 +245,28 @@ def query_maps(
         # Add location context if provided
         if lat_lon:
             lat, lon = lat_lon
+            logger.debug(f"Adding location context: lat={lat}, lon={lon}")
             lat_lng = types.LatLng(latitude=lat, longitude=lon)
             config.tool_config = types.ToolConfig(
                 retrieval_config=types.RetrievalConfig(lat_lng=lat_lng)
             )
+        else:
+            logger.debug("No location context provided")
 
         # Generate content
+        logger.debug(f"Calling Gemini API with model: {model}")
         response = client.models.generate_content(
             model=model,
             contents=query,
             config=config,
         )
+        logger.debug("Received response from Gemini API")
 
         # Check if response has candidates
+        candidate_count = len(response.candidates) if response.candidates else 0
+        logger.debug(f"Validating response: candidates count = {candidate_count}")
         if not response.candidates or len(response.candidates) == 0:
+            logger.error("API returned no response candidates")
             raise QueryError(
                 "API returned no response candidates. This may be due to:\n"
                 "  - Rate limiting (too many requests)\n"
@@ -263,6 +280,7 @@ def query_maps(
             )
 
         # Extract response text
+        logger.debug("Extracting response text from candidate")
         response_text = ""
         candidate = response.candidates[0]
         if candidate.content and candidate.content.parts:
@@ -271,9 +289,11 @@ def query_maps(
                 if hasattr(part, "text") and part.text:
                     text_parts.append(part.text)
             response_text = "".join(text_parts)
+        logger.debug(f"Extracted response text length: {len(response_text)}")
 
         # Check if we got empty response text
         if not response_text:
+            logger.error("API returned empty response text")
             raise QueryError(
                 "API returned empty response text. This may be due to:\n"
                 "  - Content filtering or safety blocks\n"
@@ -288,8 +308,15 @@ def query_maps(
         # Extract grounding metadata if requested
         grounding_metadata = None
         if include_grounding:
+            logger.debug("Extracting grounding metadata")
             grounding_metadata = extract_grounding_metadata(response)
+            if grounding_metadata:
+                chunk_count = len(grounding_metadata.grounding_chunks)
+                logger.debug(f"Found {chunk_count} grounding chunks (sources)")
+            else:
+                logger.debug("No grounding metadata found in response")
 
+        logger.debug("Query completed successfully")
         return MapsQueryResult(
             response_text=response_text,
             grounding_metadata=grounding_metadata,
@@ -300,6 +327,8 @@ def query_maps(
         raise
     except Exception as e:
         # Catch unexpected errors and provide agent-friendly message
+        logger.error(f"Unexpected error during query: {type(e).__name__}: {str(e)}")
+        logger.debug("Full traceback:", exc_info=True)
         raise QueryError(
             f"Unexpected error during query: {str(e)}\n"
             "Suggestions:\n"

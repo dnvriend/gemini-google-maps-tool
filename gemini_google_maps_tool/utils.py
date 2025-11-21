@@ -24,16 +24,21 @@ def output_json(data: dict[str, object] | list[object]) -> None:
     click.echo(json.dumps(data, indent=2))
 
 
-def log_verbose(message: str) -> None:
+def log_verbose(message: str, verbose: bool | int = True) -> None:
     """Print verbose message to stderr.
+
+    Deprecated: Use logging module with setup_logging() instead.
+    This function is kept for backward compatibility.
 
     Args:
         message: Message to log.
+        verbose: Whether to print (accepts bool for backward compatibility or int for count)
 
     Example:
         >>> log_verbose("Processing query...")
     """
-    click.echo(f"[INFO] {message}", err=True)
+    if verbose:
+        click.echo(f"[INFO] {message}", err=True)
 
 
 def log_error(message: str) -> None:

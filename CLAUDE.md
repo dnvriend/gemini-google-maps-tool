@@ -30,12 +30,14 @@ gemini-google-maps-tool query "test query"  # After install-global
 
 | File | Purpose |
 |------|---------|
-| `core/client.py` | Client management, API key handling |
-| `core/maps.py` | Maps grounding query logic |
-| `commands/query_commands.py` | CLI query command implementation |
+| `core/client.py` | Client management, API key handling, DEBUG logging |
+| `core/maps.py` | Maps grounding query logic, comprehensive DEBUG logging |
+| `commands/query_commands.py` | CLI query command implementation with verbosity |
+| `logging_config.py` | Multi-level verbosity logging configuration |
 | `utils.py` | Shared utilities (output, logging, stdin) |
-| `cli.py` | Main CLI entry point |
+| `cli.py` | Main CLI entry point with completion command |
 | `__init__.py` | Public API exports |
+| `.claude-plugin/` | Claude Code marketplace and plugin files |
 
 ### CLI Command Quick Reference
 
@@ -43,18 +45,24 @@ gemini-google-maps-tool query "test query"  # After install-global
 # Basic usage
 gemini-google-maps-tool query "query text"
 
-# All options
+# All options with verbosity
 gemini-google-maps-tool query "query text" \
   --lat-lon "52.37,4.89" \
   --model flash \
   --text \
-  --verbose
+  -vv  # Progressive verbosity: -v (INFO), -vv (DEBUG), -vvv (TRACE)
 
 # Stdin
 echo "query" | gemini-google-maps-tool query --stdin
 
+# Shell completion
+gemini-google-maps-tool completion bash  # or zsh/fish
+eval "$(gemini-google-maps-tool completion zsh)"
+
 # Help
+gemini-google-maps-tool --help
 gemini-google-maps-tool query --help
+gemini-google-maps-tool completion --help
 ```
 
 ## Overview
@@ -70,6 +78,12 @@ gemini-google-maps-tool query --help
 - **ruff** for linting and formatting
 - **mypy** for strict type checking
 - **pytest** for testing
+- **Multi-level verbosity** with progressive logging (`-v`, `-vv`, `-vvv`)
+- **Shell completion** for Bash, Zsh, and Fish
+- **Claude Code plugin** with marketplace integration
+- **Bandit** security linting
+- **pip-audit** dependency vulnerability scanning
+- **gitleaks** secret detection
 
 ## Architecture
 
@@ -146,6 +160,20 @@ make test             # Run pytest suite
 make check            # Run all checks: lint + typecheck + test
 ```
 
+### Security Checks
+
+```bash
+make security-bandit      # Python security linting with bandit
+make security-pip-audit   # Dependency vulnerability scanning
+make security-gitleaks    # Secret detection in git history
+make security             # Run all security checks
+```
+
+**Tools:**
+- **Bandit**: Static security analysis for Python code
+- **pip-audit**: Scans dependencies for known vulnerabilities
+- **Gitleaks**: Prevents committing secrets and credentials
+
 ### Build & Install
 
 ```bash
@@ -168,6 +196,60 @@ uv run gemini-google-maps-tool query "Best coffee shops"
 
 ```bash
 make clean            # Remove build artifacts (dist/, *.egg-info)
+```
+
+## Logging Architecture
+
+The tool implements a multi-level verbosity system using Python's standard logging module.
+
+### Verbosity Levels
+
+| Flag | Level | Description | Use Case |
+|------|-------|-------------|----------|
+| (none) | WARNING | Quiet mode, critical issues only | Production use |
+| `-v` | INFO | High-level operations | Normal debugging |
+| `-vv` | DEBUG | Detailed operations, API calls | Deep debugging |
+| `-vvv` | TRACE | Full HTTP traces, library internals | Issue investigation |
+
+### Implementation
+
+**logging_config.py:**
+```python
+def setup_logging(verbose_count: int = 0) -> None:
+    """Configure logging based on verbosity level."""
+    if verbose_count == 0:
+        level = logging.WARNING
+    elif verbose_count == 1:
+        level = logging.INFO
+    elif verbose_count >= 2:
+        level = logging.DEBUG
+
+    logging.basicConfig(
+        level=level,
+        format="[%(levelname)s] %(message)s",
+        stream=sys.stderr,
+        force=True,
+    )
+
+    # Enable dependent library logging at TRACE level
+    if verbose_count >= 3:
+        logging.getLogger("google.genai").setLevel(logging.DEBUG)
+        logging.getLogger("httpx").setLevel(logging.DEBUG)
+
+def get_logger(name: str) -> logging.Logger:
+    """Get logger for module."""
+    return logging.getLogger(name)
+```
+
+**Usage in commands:**
+```python
+@click.option("-v", "--verbose", count=True,
+              help="Enable verbose output (-v=INFO, -vv=DEBUG, -vvv=TRACE)")
+def query(verbose: int, ...):
+    setup_logging(verbose)
+    logger = get_logger(__name__)
+    logger.info("Starting query...")
+    logger.debug(f"Using model: {model}")
 ```
 
 ## Code Standards
@@ -321,6 +403,65 @@ The Rijksmuseum features Dutch Golden Age masterpieces...
 
 1. [Rijksmuseum](https://maps.google.com/?cid=...)
 2. [Van Gogh Museum](https://maps.google.com/?cid=...)
+```
+
+### Completion Command
+
+**Signature:**
+```bash
+gemini-google-maps-tool completion [bash|zsh|fish]
+```
+
+**Purpose:** Generate shell completion scripts for tab-completion support.
+
+**Arguments:**
+- `SHELL` (required): Shell type - `bash`, `zsh`, or `fish`
+
+**Examples:**
+
+```bash
+# Bash - temporary (current session)
+eval "$(gemini-google-maps-tool completion bash)"
+
+# Bash - persistent
+echo 'eval "$(gemini-google-maps-tool completion bash)"' >> ~/.bashrc
+
+# Zsh - temporary
+eval "$(gemini-google-maps-tool completion zsh)"
+
+# Zsh - persistent
+echo 'eval "$(gemini-google-maps-tool completion zsh)"' >> ~/.zshrc
+
+# Fish - install to completions directory
+gemini-google-maps-tool completion fish > ~/.config/fish/completions/gemini-google-maps-tool.fish
+```
+
+**Implementation:**
+- Uses Click's shell completion API (`BashComplete`, `ZshComplete`, `FishComplete`)
+- Generates completion scripts dynamically from Click command definitions
+- Supports completion for commands, options, and choice parameters
+
+## Claude Code Plugin
+
+The project includes a Claude Code marketplace plugin for seamless IDE integration.
+
+**Location:** `.claude-plugin/` and `plugins/gemini-google-maps-tool/`
+
+**Features:**
+- **Slash Commands**: Quick CLI wrappers (`/gemini-google-maps-tool:query`, `/gemini-google-maps-tool:completion`)
+- **Skill**: Comprehensive documentation with progressive disclosure (`/skill-gemini-google-maps-tool`)
+- **Auto-Discovery**: Automatically available when repository is opened in Claude Code
+
+**Usage in Claude Code:**
+```
+# Quick query
+/gemini-google-maps-tool:query "Best restaurants in Tokyo"
+
+# Get comprehensive help
+/skill-gemini-google-maps-tool
+
+# Or use natural language
+Use the gemini-google-maps-tool to help me find places
 ```
 
 ## Library Usage

@@ -1,10 +1,15 @@
 # gemini-google-maps-tool
 
+<p align="center">
+  <img src=".github/assets/logo-web.png" alt="Gemini Google Maps Tool Logo" width="256" />
+</p>
+
 [![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://github.com/python/mypy)
 [![AI Generated](https://img.shields.io/badge/AI-Generated-blueviolet.svg)](https://www.anthropic.com/claude)
+[![Claude Sonnet 4.5](https://img.shields.io/badge/Model-Claude_Sonnet_4.5-blue)](https://www.anthropic.com/claude)
 [![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-5A67D8.svg)](https://www.anthropic.com/claude/code)
 
 A production-ready CLI and Python library for querying Gemini with Google Maps grounding, connecting the model to accurate, up-to-date Google Maps data.
@@ -25,11 +30,19 @@ gemini-google-maps-tool query "Best coffee shops in Amsterdam"
 gemini-google-maps-tool query "Italian restaurants nearby" \
   --lat-lon "52.37,4.89"
 
-# Markdown output
+# Verbose mode (progressive logging)
+gemini-google-maps-tool query "Sushi restaurants" -v    # INFO
+gemini-google-maps-tool query "Hotels" -vv              # DEBUG
+gemini-google-maps-tool query "Museums" -vvv            # TRACE
+
+# Markdown output with sources
 gemini-google-maps-tool query "Best museums in Paris" --text
 
+# Shell completion
+eval "$(gemini-google-maps-tool completion bash)"  # or zsh/fish
+
 # Get help
-gemini-google-maps-tool query --help
+gemini-google-maps-tool --help
 ```
 
 ## Table of Contents
@@ -42,6 +55,9 @@ gemini-google-maps-tool query --help
 - [Features](#features)
 - [Installation](#installation)
 - [Configuration](#configuration)
+  - [API Key Setup](#api-key-setup)
+  - [Shell Completion](#shell-completion)
+- [Claude Code Plugin](#claude-code-plugin)
 - [Usage](#usage)
   - [CLI Usage](#cli-usage)
   - [Library Usage](#library-usage)
@@ -90,6 +106,8 @@ This tool prioritizes **agent-friendly architecture** and **composability**, mak
 - ✅ **Single Command Interface**: Simple `query` command handles all query types
 - ✅ **Location Context**: Optional lat/lon coordinates for personalized results
 - ✅ **Model Selection**: Choose between `flash` (gemini-2.5-flash) or `flash-lite` (default)
+- ✅ **Multi-Level Verbosity**: Progressive logging with `-v`, `-vv`, `-vvv` flags for debugging
+- ✅ **Shell Completion**: Tab-completion for Bash, Zsh, and Fish shells
 - ✅ **Flexible Output**: JSON (default) or markdown text (`--text`) with automatic source citations
 - ✅ **Verbose Mode**: Include full grounding metadata with sources and citations
 - ✅ **Stdin Support**: Read queries from stdin for composability with other tools
@@ -184,6 +202,104 @@ source ~/.zshrc
 - Monitor usage: [Google Cloud Console](https://console.cloud.google.com/)
 
 Learn more: [Gemini API Pricing](https://ai.google.dev/pricing)
+
+### Shell Completion
+
+Enable tab-completion for gemini-google-maps-tool commands, options, and arguments.
+
+#### Bash
+
+```bash
+# Quick installation (temporary - current session only)
+eval "$(gemini-google-maps-tool completion bash)"
+
+# Persistent installation (add to ~/.bashrc)
+echo 'eval "$(gemini-google-maps-tool completion bash)"' >> ~/.bashrc
+source ~/.bashrc
+
+# File-based installation (better performance)
+gemini-google-maps-tool completion bash > ~/.gemini-google-maps-tool-complete.bash
+echo 'source ~/.gemini-google-maps-tool-complete.bash' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Requirements:** Bash 4.4 or later
+
+#### Zsh
+
+```bash
+# Quick installation (temporary - current session only)
+eval "$(gemini-google-maps-tool completion zsh)"
+
+# Persistent installation (add to ~/.zshrc)
+echo 'eval "$(gemini-google-maps-tool completion zsh)"' >> ~/.zshrc
+source ~/.zshrc
+
+# File-based installation (better performance)
+gemini-google-maps-tool completion zsh > ~/.gemini-google-maps-tool-complete.zsh
+echo 'source ~/.gemini-google-maps-tool-complete.zsh' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Fish
+
+```bash
+# Install to Fish completions directory (auto-loaded)
+gemini-google-maps-tool completion fish > ~/.config/fish/completions/gemini-google-maps-tool.fish
+
+# Reload completions (or restart Fish)
+fish_update_completions
+```
+
+**Note:** Fish automatically loads completions from `~/.config/fish/completions/`, no additional configuration needed.
+
+#### Verify Installation
+
+After installing completion, test it works:
+
+```bash
+# Type this and press TAB to see available commands
+gemini-google-maps-tool <TAB>
+
+# Type this and press TAB to see available options
+gemini-google-maps-tool query --<TAB>
+```
+
+## Claude Code Plugin
+
+This repository includes a Claude Code marketplace plugin for seamless integration with Claude Code IDE.
+
+### Available Commands
+
+**Slash Commands** (quick reference):
+- `/gemini-google-maps-tool:query` - Query Gemini with Google Maps grounding
+- `/gemini-google-maps-tool:completion` - Generate shell completion scripts
+
+**Skill** (comprehensive guide):
+- `/skill-gemini-google-maps-tool` - Complete documentation with progressive disclosure
+
+### Usage in Claude Code
+
+```
+# Quick query
+/gemini-google-maps-tool:query "Best restaurants in Tokyo"
+
+# Get comprehensive help
+/skill-gemini-google-maps-tool
+
+# Or use natural language
+Use the skill-gemini-google-maps-tool to help me query places
+```
+
+### Plugin Features
+
+- 📚 **Progressive Disclosure**: Comprehensive documentation in collapsible sections
+- 🎯 **Focused Commands**: Quick syntax reference for common operations
+- 🔍 **Troubleshooting Guide**: Common issues and solutions
+- 📖 **Examples Library**: Real-world usage patterns
+- 🐍 **Python Library Integration**: Code examples for programmatic use
+
+The plugin is automatically available when you open this repository in Claude Code.
 
 ## Usage
 
