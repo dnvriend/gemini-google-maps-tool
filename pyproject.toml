@@ -12,6 +12,44 @@ authors = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
+keywords = [
+    "gemini",
+    "google-maps",
+    "location",
+    "grounding",
+    "cli",
+    "ai",
+    "llm",
+    "places",
+    "geolocation",
+    "maps",
+    "google-ai",
+    "google-genai",
+    "location-based",
+    "rag",
+    "agent-friendly"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Typing :: Typed"
+]
+
+[project.urls]
+Homepage = "https://github.com/dnvriend/gemini-google-maps-tool"
+Repository = "https://github.com/dnvriend/gemini-google-maps-tool"
+Issues = "https://github.com/dnvriend/gemini-google-maps-tool/issues"
+Documentation = "https://github.com/dnvriend/gemini-google-maps-tool#readme"
 
 [project.scripts]
 gemini-google-maps-tool = "gemini_google_maps_tool.cli:main"

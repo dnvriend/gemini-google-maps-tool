@@ -44,13 +44,14 @@ run: ## Run gemini-google-maps-tool (usage: make run ARGS="...")
 	uv run gemini-google-maps-tool $(ARGS)
 
 build: ## Build package
-	uv build
+	uv build --force-pep517
 
-install-global: ## Install globally with uv tool (from wheel)
-	@if [ ! -f dist/gemini_google_maps_tool-0.1.0-py3-none-any.whl ]; then \
-		echo "Error: Wheel file not found. Run 'make build' first."; \
-		exit 1; \
-	fi
+install-global: ## Install globally with uv tool (rebuild and install)
+	@echo "Uninstalling existing installation..."
+	-uv tool uninstall gemini-google-maps-tool 2>/dev/null || true
+	@echo "Building package..."
+	uv build --force-pep517
+	@echo "Installing globally..."
 	uv tool install dist/gemini_google_maps_tool-0.1.0-py3-none-any.whl --force
 
 uninstall-global: ## Uninstall global installation
